@@ -1,9 +1,22 @@
 <template>
   <v-container>
-    <!-- Encabezado -->
     <div class="text-center mb-8">
       <h1 class="text-h3 font-weight-bold mb-2">Gestión de Clientes</h1>
     </div>
+
+    <!-- Botón para agregar nuevo cliente -->
+    <v-card class="mb-6">
+      <v-card-text class="text-center py-6">
+        <v-btn
+          color="primary"
+          size="large"
+          prepend-icon="mdi-plus"
+          @click="irANuevo"
+        >
+          Agregar Nuevo Cliente
+        </v-btn>
+      </v-card-text>
+    </v-card>
 
     <!-- Snackbar para mensajes -->
     <v-snackbar
@@ -15,17 +28,10 @@
       {{ snackbar.mensaje }}
     </v-snackbar>
 
-    <!-- Formulario -->
-    <formulario-cliente
-      :cliente-editar="clienteEditar"
-      @guardar="guardarCliente"
-      @cancelar="cancelarEdicion"
-    />
-
     <!-- Listado -->
     <listado-clientes
       :clientes="clientes"
-      @editar="editarCliente"
+      @editar="irAEditar"
       @eliminar="mostrarDialogoEliminar"
     />
 
@@ -42,77 +48,41 @@
 <script>
 import { ref, computed } from 'vue'
 import { useStore } from 'vuex'
-import FormularioCliente from '@/components/FormularioCliente.vue'
+import { useRouter } from 'vue-router'
 import ListadoClientes from '@/components/ListadoClientes.vue'
 import DialogoConfirmacion from '@/components/DialogoConfirmacion.vue'
 
 export default {
-  name: 'ClientesView',
-
-  components: {
-    FormularioCliente,
-    ListadoClientes,
-    DialogoConfirmacion
-  },
+  name: 'ListadoView',
+  components: { ListadoClientes, DialogoConfirmacion },
 
   setup() {
     const store = useStore()
+    const router = useRouter()
 
-    // Estado local
-    const clienteEditar = ref(null)
     const clienteEliminar = ref(null)
     const dialogo = ref({ mostrar: false })
-    const snackbar = ref({
-      mostrar: false,
-      mensaje: '',
-      color: 'success'
-    })
+    const snackbar = ref({ mostrar: false, mensaje: '', color: 'success' })
 
-    // Computed property para obtener clientes del store
     const clientes = computed(() => store.getters.todosLosClientes)
 
-    // Mostrar mensaje
     const mostrarMensaje = (mensaje, color = 'success') => {
       snackbar.value = { mostrar: true, mensaje, color }
     }
 
-    // Guardar cliente (crear o actualizar)
-    const guardarCliente = async (cliente) => {
-      try {
-        if (clienteEditar.value) {
-          // Actualizar
-          await store.dispatch('actualizarCliente', cliente)
-          mostrarMensaje('Cliente actualizado exitosamente')
-          clienteEditar.value = null
-        } else {
-          // Crear
-          await store.dispatch('agregarCliente', cliente)
-          mostrarMensaje('Cliente agregado exitosamente')
-        }
-      } catch (error) {
-        mostrarMensaje('Error al guardar el cliente', 'error')
-        console.error(error)
-      }
+    const irANuevo = () => {
+      router.push({ name: 'alta' })
     }
 
-    // Editar cliente
-    const editarCliente = (cliente) => {
-      clienteEditar.value = { ...cliente }
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+    const irAEditar = (cliente) => {
+      router.push({ name: 'edicion', params: { id: cliente.id } })
     }
 
-    // Cancelar edición
-    const cancelarEdicion = () => {
-      clienteEditar.value = null
-    }
-
-    // Mostrar diálogo de eliminación
     const mostrarDialogoEliminar = (cliente) => {
       clienteEliminar.value = cliente
       dialogo.value.mostrar = true
     }
 
-    // Eliminar cliente
     const eliminarCliente = async () => {
       try {
         await store.dispatch('eliminarCliente', clienteEliminar.value.id)
@@ -120,11 +90,9 @@ export default {
         cerrarDialogo()
       } catch (error) {
         mostrarMensaje('Error al eliminar el cliente', 'error')
-        console.error(error)
       }
     }
 
-    // Cerrar diálogo
     const cerrarDialogo = () => {
       dialogo.value.mostrar = false
       clienteEliminar.value = null
@@ -132,13 +100,11 @@ export default {
 
     return {
       clientes,
-      clienteEditar,
       clienteEliminar,
       dialogo,
       snackbar,
-      guardarCliente,
-      editarCliente,
-      cancelarEdicion,
+      irANuevo,
+      irAEditar,
       mostrarDialogoEliminar,
       eliminarCliente,
       cerrarDialogo
